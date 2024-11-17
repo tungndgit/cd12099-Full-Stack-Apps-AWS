@@ -1,7 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import {filterImageFromURL, deleteLocalFiles} from './util/util.js';
-
+import { URL } from 'url';
 
 
   // Init the Express application
@@ -30,6 +30,42 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util.js';
     /**************************************************************************** */
 
   //! END @TODO1
+
+  app.get("/filteredimage", async (req, res) => {
+    try {
+      let image_url = req.query.image_url;
+      
+      // Check exist and valid
+      if (!image_url) {
+        return res.status(400).send("Bad request: Image URL parameter missing");
+      }
+
+      // Validate image_url
+      try {
+        new URL(image_url);
+      } catch (error) {
+        console.log(error)
+        return res.status(400).send("Bad request: Invalid URL");
+      }
+
+      // Filter the image
+      const filteredImage = await filterImageFromURL(image_url);
+
+      // Send result
+      res.status(200).sendFile(filteredImage, {}, (err) => {
+        if (err) {
+          console.error("Send file error:", err);
+        } else {
+          // Response success: Delete local file
+          deleteLocalFiles([filteredImage]);
+        }
+
+      });
+    } catch (error) {
+      console.log('Error', error);
+      res.status(500).send(`[Error ${error.errno || 500}] Unexpected error, plz check server log !`);
+    }
+  });
   
   // Root Endpoint
   // Displays a simple message to the user
